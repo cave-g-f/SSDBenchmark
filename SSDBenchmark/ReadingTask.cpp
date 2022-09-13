@@ -35,15 +35,49 @@ void ReadingTask::IOCPLockRead()
 		exit(-1);
 	}
 
-	HANDLE icop = CreateIoCompletionPort(fileHandler, NULL, 0, 64);
+	HANDLE iocp = CreateIoCompletionPort(fileHandler, NULL, 0, 0);
 
+	ULONG_PTR threadExitKey = 1;
+	uint8_t workThreadNum = 4;
 	std::vector<OVERLAPPED_ENTRY> overlapEntrys(m_batchSize);
 	std::vector<OVERLAPPED> overlaps(m_batchSize);
 	std::vector<std::unique_ptr<uint8_t[]>> buffers;
+	std::vector<std::thread> workThreads;
+	std::vector<std::uint64_t> completeCnt(workThreadNum, 0);
+
 	for (uint8_t i = 0; i < m_batchSize; i++)
 	{
 		buffers.emplace_back(std::make_unique<uint8_t[]>(m_blockSizeInBytes));
 	}
+
+	auto WorkThreadFunc = [iocp, this, threadExitKey, &completeCnt](uint8_t tid) {
+		int cnt = 0;
+		while (1)
+		{
+			LPOVERLAPPED overlap;
+			ULONG_PTR completionKey = 0;
+			DWORD readBytes = 0;
+
+			auto res = GetQueuedCompletionStatus(iocp, &readBytes, &completionKey, &overlap, INFINITE);
+
+			if (completionKey == threadExitKey)
+			{
+				return 0;
+			}
+
+			if (!res)
+			{
+				std::cout << GetLastError() << std::endl;
+				std::cout << "GetQueuedCompletionStatus error " << std::endl;
+				exit(-1);
+			}
+
+			if (readBytes == this->m_blockSizeInBytes)
+			{
+				completeCnt[tid] += 1;
+			}
+		}
+	};
 
 	auto setRes = SetFileIoOverlappedRange(fileHandler, (PUCHAR)&overlaps[0], m_batchSize * sizeof(OVERLAPPED));
 
@@ -54,6 +88,7 @@ void ReadingTask::IOCPLockRead()
 		exit(-1);
 	}
 
+	uint64_t totalCnt = 0;
 	while (m_elapsedTime < m_testTime)
 	{
 		for (uint8_t i = 0; i < m_batchSize; i++)
@@ -70,13 +105,18 @@ void ReadingTask::IOCPLockRead()
 			overlapEntrys[i].Internal = 0;
 		}
 
+		for (uint8_t i = 0; i < workThreadNum; i++)
+		{
+			workThreads.emplace_back(WorkThreadFunc, i);
+		}
+
 		auto startTime = std::chrono::high_resolution_clock::now();
 
 		for (uint8_t i = 0; i < m_batchSize; i++)
 		{
-			ReadFile(fileHandler, buffers[i].get(), m_blockSizeInBytes, NULL, &overlaps[i]);
+			auto res = ReadFile(fileHandler, buffers[i].get(), m_blockSizeInBytes, NULL, &overlaps[i]);
 
-			if (GetLastError() != ERROR_IO_PENDING)
+			if (!res && GetLastError() != ERROR_IO_PENDING)
 			{
 				std::cout << "File read failed " << std::endl;
 				std::cout << GetLastError() << std::endl;
@@ -87,13 +127,18 @@ void ReadingTask::IOCPLockRead()
 
 		auto endIOSendTime = std::chrono::high_resolution_clock::now();
 
-		ULONG removedEntry = 0;
-		while (removedEntry != m_batchSize)
+		for (uint8_t i = 0; i < workThreadNum; i++)
 		{
-			OVERLAPPED* overlap;
-			auto res = GetQueuedCompletionStatus(icop, &m_blockSizeInBytes, NULL, &overlap, INFINITE);
-			removedEntry++;
+			OVERLAPPED overlap;
+			PostQueuedCompletionStatus(iocp, 0, threadExitKey, &overlap);
 		}
+
+		for (uint8_t i = 0; i < workThreadNum; i++)
+		{
+			if (workThreads[i].joinable())
+				workThreads[i].join();
+		}
+		workThreads.clear();
 
 		auto endTime = std::chrono::high_resolution_clock::now();
 		auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
@@ -109,9 +154,24 @@ void ReadingTask::IOCPLockRead()
 		{
 			if (overlaps[i].hEvent) CloseHandle(overlaps[i].hEvent);
 		}
+
+		totalCnt += m_batchSize;
 	}
 
-	CloseHandle(icop);
+	uint64_t testCnt = 0;
+	for (uint8_t i = 0; i < workThreadNum; i++)
+	{
+		testCnt += completeCnt[i];
+	}
+	if (testCnt != totalCnt)
+	{
+		std::cout << "not complete all" << std::endl;
+		std::cout << testCnt << std::endl;
+		std::cout << totalCnt << std::endl;
+	}
+	else std::cout << "complete all" << std::endl;
+
+	CloseHandle(iocp);
 	CloseHandle(fileHandler);
 }
 
@@ -130,17 +190,72 @@ void ReadingTask::IOCPRead()
 		exit(-1);
 	}
 
-	HANDLE icop = CreateIoCompletionPort(fileHandler, NULL, 0, 0);
+	HANDLE iocp = CreateIoCompletionPort(fileHandler, NULL, 0, 0);
 
+	ULONG_PTR threadExitKey = 1;
+	uint8_t workThreadNum = 4;
 	std::vector<OVERLAPPED_ENTRY> overlapEntrys(m_batchSize);
 	std::vector<OVERLAPPED> overlaps(m_batchSize);
 	std::vector<std::unique_ptr<uint8_t[]>> buffers;
+	std::vector<std::thread> workThreads;
+	std::vector<std::uint64_t> completeCnt(workThreadNum, 0);
+
 	for (uint8_t i = 0; i < m_batchSize; i++)
 	{
 		buffers.emplace_back(std::make_unique<uint8_t[]>(m_blockSizeInBytes));
 	}
 
+	auto WorkThreadFunc = [iocp, this, threadExitKey, &completeCnt] (uint8_t tid) {
+		int cnt = 0;
+		while (1)
+		{
+			LPOVERLAPPED overlap;
+			ULONG_PTR completionKey = 0;
+			DWORD readBytes = 0;
 
+			auto res = GetQueuedCompletionStatus(iocp, &readBytes, &completionKey, &overlap, INFINITE);
+
+			if (completionKey == threadExitKey)
+			{
+				return 0;
+			}
+
+			if (!res)
+			{
+				std::cout << GetLastError() << std::endl;
+				std::cout << "GetQueuedCompletionStatus error " << std::endl;
+				exit(-1);
+			}
+			
+			if (readBytes == this->m_blockSizeInBytes)
+			{
+				completeCnt[tid] += 1;
+			}
+		}
+	};
+
+	//auto WorkThreadFunc = [iocp, this] {
+	//	int cnt = 0;
+	//	while (1)
+	//	{
+	//		OVERLAPPED* overlap = nullptr;
+	//		ULONG_PTR completionKey = 0;
+	//		DWORD transferBytes = 0;
+	//		GetQueuedCompletionStatus(iocp, &transferBytes, &completionKey, &overlap, INFINITE);
+
+	//		if (transferBytes != this->m_blockSizeInBytes)
+	//		{
+	//			std::cout << "GetQueuedCompletionStatus error " << std::endl;
+	//		}
+
+	//		cnt++;
+
+	//		if (cnt == this->m_batchSize) break;
+
+	//	}
+	//};
+
+	uint64_t totalCnt = 0;
 	while (m_elapsedTime < m_testTime)
 	{
 		for (uint8_t i = 0; i < m_batchSize; i++)
@@ -157,13 +272,18 @@ void ReadingTask::IOCPRead()
 			overlapEntrys[i].Internal = 0;
 		}
 
+		for (uint8_t i = 0; i < workThreadNum; i++)
+		{
+			workThreads.emplace_back(WorkThreadFunc, i);
+		}
+
 		auto startTime = std::chrono::high_resolution_clock::now();
 
 		for (uint8_t i = 0; i < m_batchSize; i++)
 		{
-			ReadFile(fileHandler, buffers[i].get(), m_blockSizeInBytes, NULL, &overlaps[i]);
+			auto res = ReadFile(fileHandler, buffers[i].get(), m_blockSizeInBytes, NULL, &overlaps[i]);
 
-			if (GetLastError() != ERROR_IO_PENDING)
+			if (!res && GetLastError() != ERROR_IO_PENDING)
 			{
 				std::cout << "File read failed " << std::endl;
 				std::cout << GetLastError() << std::endl;
@@ -174,13 +294,18 @@ void ReadingTask::IOCPRead()
 
 		auto endIOSendTime = std::chrono::high_resolution_clock::now();
 
-		ULONG removedEntry = 0;
-		while (removedEntry != m_batchSize)
+		for (uint8_t i = 0; i < workThreadNum; i++)
 		{
-			OVERLAPPED* overlap;
-			auto res = GetQueuedCompletionStatus(icop, &m_blockSizeInBytes, NULL, &overlap, INFINITE);
-			removedEntry++;
+			OVERLAPPED overlap;
+			PostQueuedCompletionStatus(iocp, 0, threadExitKey, &overlap);
 		}
+
+		for (uint8_t i = 0; i < workThreadNum; i++)
+		{
+			if(workThreads[i].joinable())
+				workThreads[i].join();
+		}
+		workThreads.clear();
 
 		auto endTime = std::chrono::high_resolution_clock::now();
 		auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
@@ -196,9 +321,24 @@ void ReadingTask::IOCPRead()
 		{
 			if (overlaps[i].hEvent) CloseHandle(overlaps[i].hEvent);
 		}
+
+		totalCnt += m_batchSize;
 	}
 
-	CloseHandle(icop);
+	uint64_t testCnt = 0;
+	for (uint8_t i = 0; i < workThreadNum; i++)
+	{
+		testCnt += completeCnt[i];
+	}
+	if (testCnt != totalCnt)
+	{
+		std::cout << "not complete all" << std::endl;
+		std::cout << testCnt << std::endl;
+		std::cout << totalCnt << std::endl;
+	}
+	else std::cout << "complete all" << std::endl;
+
+	CloseHandle(iocp);
 	CloseHandle(fileHandler);
 
 }
@@ -243,9 +383,9 @@ void ReadingTask::AsyncRead()
 
 		for (uint8_t i = 0; i < m_batchSize; i++)
 		{
-			ReadFile(fileHandler, buffers[i].get(), m_blockSizeInBytes, NULL, &overlaps[i]);
+			auto res = ReadFile(fileHandler, buffers[i].get(), m_blockSizeInBytes, NULL, &overlaps[i]);
 
-			if (GetLastError() != ERROR_IO_PENDING)
+			if (!res && GetLastError() != ERROR_IO_PENDING)
 			{
 				std::cout << "File read failed " << std::endl;
 				std::cout << GetLastError() << std::endl;
@@ -340,9 +480,9 @@ void ReadingTask::AsyncLockRead()
 
 		for (uint8_t i = 0; i < m_batchSize; i++)
 		{
-			ReadFile(fileHandler, buffers[i].get(), m_blockSizeInBytes, NULL, &overlaps[i]);
+			auto res = ReadFile(fileHandler, buffers[i].get(), m_blockSizeInBytes, NULL, &overlaps[i]);
 
-			if (GetLastError() != ERROR_IO_PENDING)
+			if (!res && GetLastError() != ERROR_IO_PENDING)
 			{
 				std::cout << "File read failed " << std::endl;
 				std::cout << GetLastError() << std::endl;

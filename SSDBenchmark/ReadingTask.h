@@ -44,8 +44,6 @@ public:
 	std::vector<std::uint64_t> m_waitLatency;
 	std::uint64_t m_readTotalBytes;
 
-private:
-
 	std::uint8_t m_tId;
 	std::uint64_t m_testTime;
 	std::uint32_t m_readKeyNumberPerQuery;
