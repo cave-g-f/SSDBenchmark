@@ -22,7 +22,6 @@ public:
 
 	ReadingTask(
 		std::uint32_t readKeyNumberPerQuery,
-		std::uint8_t testTime,
 		std::uint8_t tId);
 
 	void Run();
@@ -51,8 +50,10 @@ public:
 	std::uint64_t m_elapsedTime;
 	std::uint8_t m_fileSize;
 	std::uint8_t m_blockSize;
-	std::uint8_t m_batchSize;
+	std::uint64_t m_batchSize;
+	std::uint64_t m_queryTime;
 	std::uint64_t m_blockNum;
+	std::uint64_t m_readSpeed;
 	ReadMethod m_readMethod;
 	DWORD m_blockSizeInBytes;
 };

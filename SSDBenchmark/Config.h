@@ -19,17 +19,21 @@ public:
 		ReadKeyNumberPerQuery,
 		BatchSize,
 		ReadMethod,
+		ReadSpeed,
+		ThreadNumberForSSDRead,
 	};
 
 
 	enum class ConfigType
 	{
 		uint8,
+		uint64,
 		string,
 	};
 
 private:
 	using configTypeUint8 = std::unordered_map<ConfigName, uint8_t>;
+	using configTypeUint64 = std::unordered_map<ConfigName, uint64_t>;
 	using configTypeStr = std::unordered_map<ConfigName, std::string>;
 
 	configTypeUint8 configSetsUint8 =
@@ -38,6 +42,10 @@ private:
 		{ConfigName::ReadKeyNumberPerQuery, 1},
 	};
 	configTypeStr configSetsStr;
+	configTypeUint64 configSetsUint64 =
+	{
+		{ConfigName::ReadSpeed, 0},
+	};
 
 	Config() {};
 	Config(const Config&) = delete;
@@ -58,6 +66,11 @@ public:
 	{
 		return configSetsStr.at(key);
 	}
+
+	uint64_t getValUint64(const ConfigName& key)
+	{
+		return configSetsUint64.at(key);
+	}
 	
 	void save(const ConfigName& key, void* value, const ConfigType& type)
 	{
@@ -68,6 +81,10 @@ public:
 		else if (type == ConfigType::string)
 		{
 			configSetsStr[key] = *(reinterpret_cast<std::string*>(value));
+		}
+		else if (type == ConfigType::uint64)
+		{
+			configSetsUint64[key] = *(reinterpret_cast<uint64_t*>(value));
 		}
 	}
 

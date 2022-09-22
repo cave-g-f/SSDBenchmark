@@ -71,14 +71,14 @@ void runReadBenchmark()
 	const std::string& fileName = Config::get().getValStr(configName::TestFile);
 	const uint8_t& size = Config::get().getValUint8(configName::FileSize);
 	const uint8_t& bufferLenGB = Config::get().getValUint8(configName::WBufferLen);
-	const uint8_t& testTime = Config::get().getValUint8(configName::RTime);
+	const uint64_t& testTime = Config::get().getValUint64(configName::RTime);
 
 	std::vector<std::thread> threadVecs;
 	std::vector<ReadingTask> tasks;
 
 	for (uint8_t i = 0; i < threadNum; i++)
 	{
-		tasks.emplace_back(1, testTime, 0);
+		tasks.emplace_back(1, 0);
 	}
 
 	for (uint8_t i = 0; i < threadNum; i++)
@@ -88,8 +88,8 @@ void runReadBenchmark()
 
 	for (auto& thread : threadVecs)
 	{
-		if(thread.joinable())
-		thread.join();
+		if (thread.joinable())
+			thread.join();
 	}
 
 	std::vector<uint64_t> totalLatency;
@@ -106,7 +106,7 @@ void runReadBenchmark()
 	}
 
 	size_t len = totalLatency.size();
-	double avgLatency =0, avgSendLatency =0, avgWaitLatency =0;
+	double avgLatency = 0, avgSendLatency = 0, avgWaitLatency = 0;
 
 	for (size_t i = 0; i < len; i++)
 	{
@@ -118,7 +118,7 @@ void runReadBenchmark()
 	std::sort(totalLatency.begin(), totalLatency.end());
 	std::sort(totalSendLatency.begin(), totalSendLatency.end());
 	std::sort(totalWaitLatency.begin(), totalWaitLatency.end());
-	
+
 	std::cout << "-----total latency-----" << std::endl;
 	std::cout << "avg: " << avgLatency << std::endl;
 	std::cout << "50th: " << totalLatency[len / 2] << std::endl;
@@ -184,33 +184,38 @@ void SetPrivilege(LPCWSTR privilegeName)
 	}
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
-	std::string helpStr = "Usage: SSDBenchmark.exe filename size(GB) blockSize(KB) num_jobs testTime batchSize readMethod(0-async 1-asyncLock 2-icop 3-icopLock)";
+	std::string helpStr = "Usage: SSDBenchmark.exe filename size(GB) blockSize(KB) num_jobs testTime batchSize readMethod(0-async 1-asyncLock 2-icop 3-icopLock) readSpeed threadNumberForSSDRead";
 
-	if (argc < 8)
+	if (argc < 10)
 	{
 		std::cout << helpStr << std::endl;
 		exit(-1);
 	}
 
 	std::string fileName(argv[1]);
-	uint8_t size = atoi(argv[2]), blockSize = atoi(argv[3]), numJobs = atoi(argv[4]), testTime = atoi(argv[5]), batchSize = atoi(argv[6]), readMethod = atoi(argv[7]);
+	uint8_t size = atoi(argv[2]), blockSize = atoi(argv[3]), numJobs = atoi(argv[4]);
+	uint64_t testTime = _atoi64(argv[5]), batchSize = _atoi64(argv[6]);
+	uint8_t readMethod = atoi(argv[7]);
+	uint64_t readSpeed = _atoi64(argv[8]);
+	uint8_t ThreadNumberForSSDRead = atoi(argv[9]);
 
 	Config::get().save(configName::TestFile, &fileName, configType::string);
 	Config::get().save(configName::FileSize, &size, configType::uint8);
 	Config::get().save(configName::RBlockSize, &blockSize, configType::uint8);
-	Config::get().save(configName::RTime, &testTime, configType::uint8);
+	Config::get().save(configName::RTime, &testTime, configType::uint64);
 	Config::get().save(configName::ThreadsNum, &numJobs, configType::uint8);
-	Config::get().save(configName::BatchSize, &batchSize, configType::uint8);
+	Config::get().save(configName::BatchSize, &batchSize, configType::uint64);
 	Config::get().save(configName::ReadMethod, &readMethod, configType::uint8);
+	Config::get().save(configName::ReadSpeed, &readSpeed, configType::uint64);
+	Config::get().save(configName::ThreadNumberForSSDRead, &ThreadNumberForSSDRead, configType::uint8);
 	std::cout << "readMethod: " << (int)readMethod << std::endl;
 	if (readMethod == (uint8_t)ReadingTask::ReadMethod::AsyncLockRead ||
-		readMethod == (uint8_t)ReadingTask::ReadMethod::IOCPLockRead) 
+		readMethod == (uint8_t)ReadingTask::ReadMethod::IOCPLockRead)
 		SetPrivilege(SE_LOCK_MEMORY_NAME);
 
 	prepareTestFile();
 	runReadBenchmark();
-
 
 }

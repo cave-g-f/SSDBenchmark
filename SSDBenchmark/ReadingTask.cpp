@@ -2,22 +2,22 @@
 
 ReadingTask::ReadingTask(
 	std::uint32_t readKeyNumberPerQuery,
-	std::uint8_t testTime,
 	std::uint8_t tId)
 	: m_readKeyNumberPerQuery(readKeyNumberPerQuery)
-	, m_testTime(testTime)
 	, m_tId(tId)
 {
 	m_elapsedTime = 0;
 	m_readTotalBytes = 0;
 	m_fileName = Config::get().getValStr(configName::TestFile);
 	m_fileSize = Config::get().getValUint8(configName::FileSize);
-	m_testTime = (std::uint64_t)(Config::get().getValUint8(configName::RTime)) * 1000 * 1000;
+	m_testTime = (Config::get().getValUint64(configName::RTime)) * 1000 * 1000;
 	m_blockSize = Config::get().getValUint8(configName::RBlockSize);
-	m_batchSize = Config::get().getValUint8(configName::BatchSize);
+	m_batchSize = Config::get().getValUint64(configName::BatchSize);
 	m_blockNum = (static_cast<uint64_t>(m_fileSize) << 20) / m_blockSize;
 	m_blockSizeInBytes = (DWORD)(m_blockSize) << 10;
 	m_readMethod = (ReadMethod)Config::get().getValUint8(configName::ReadMethod);
+	m_readSpeed = Config::get().getValUint64(configName::ReadSpeed) / Config::get().getValUint8(configName::ThreadsNum);
+	if(m_readSpeed != 0) m_queryTime = 1000 / m_readSpeed;
 }
 
 void ReadingTask::IOCPLockRead()
@@ -45,7 +45,7 @@ void ReadingTask::IOCPLockRead()
 	std::vector<std::thread> workThreads;
 	std::vector<std::uint64_t> completeCnt(workThreadNum, 0);
 
-	for (uint8_t i = 0; i < m_batchSize; i++)
+	for (uint64_t i = 0; i < m_batchSize; i++)
 	{
 		buffers.emplace_back(std::make_unique<uint8_t[]>(m_blockSizeInBytes));
 	}
@@ -91,7 +91,7 @@ void ReadingTask::IOCPLockRead()
 	uint64_t totalCnt = 0;
 	while (m_elapsedTime < m_testTime)
 	{
-		for (uint8_t i = 0; i < m_batchSize; i++)
+		for (uint64_t i = 0; i < m_batchSize; i++)
 		{
 			std::uint64_t startIndex = distribute(gen) * m_blockSizeInBytes;
 			overlaps[i].Offset = startIndex & UINT32_MAX;
@@ -112,7 +112,7 @@ void ReadingTask::IOCPLockRead()
 
 		auto startTime = std::chrono::high_resolution_clock::now();
 
-		for (uint8_t i = 0; i < m_batchSize; i++)
+		for (uint64_t i = 0; i < m_batchSize; i++)
 		{
 			auto res = ReadFile(fileHandler, buffers[i].get(), m_blockSizeInBytes, NULL, &overlaps[i]);
 
@@ -150,7 +150,7 @@ void ReadingTask::IOCPLockRead()
 		m_elapsedTime += duration.count();
 		m_readTotalBytes += m_blockSizeInBytes * m_batchSize;
 
-		for (uint8_t i = 0; i < m_batchSize; i++)
+		for (uint64_t i = 0; i < m_batchSize; i++)
 		{
 			if (overlaps[i].hEvent) CloseHandle(overlaps[i].hEvent);
 		}
@@ -200,7 +200,7 @@ void ReadingTask::IOCPRead()
 	std::vector<std::thread> workThreads;
 	std::vector<std::uint64_t> completeCnt(workThreadNum, 0);
 
-	for (uint8_t i = 0; i < m_batchSize; i++)
+	for (uint64_t i = 0; i < m_batchSize; i++)
 	{
 		buffers.emplace_back(std::make_unique<uint8_t[]>(m_blockSizeInBytes));
 	}
@@ -258,7 +258,7 @@ void ReadingTask::IOCPRead()
 	uint64_t totalCnt = 0;
 	while (m_elapsedTime < m_testTime)
 	{
-		for (uint8_t i = 0; i < m_batchSize; i++)
+		for (uint64_t i = 0; i < m_batchSize; i++)
 		{
 			std::uint64_t startIndex = distribute(gen) * m_blockSizeInBytes;
 			overlaps[i].Offset = startIndex & UINT32_MAX;
@@ -279,7 +279,7 @@ void ReadingTask::IOCPRead()
 
 		auto startTime = std::chrono::high_resolution_clock::now();
 
-		for (uint8_t i = 0; i < m_batchSize; i++)
+		for (uint64_t i = 0; i < m_batchSize; i++)
 		{
 			auto res = ReadFile(fileHandler, buffers[i].get(), m_blockSizeInBytes, NULL, &overlaps[i]);
 
@@ -317,7 +317,7 @@ void ReadingTask::IOCPRead()
 		m_elapsedTime += duration.count();
 		m_readTotalBytes += m_blockSizeInBytes * m_batchSize;
 
-		for (uint8_t i = 0; i < m_batchSize; i++)
+		for (uint64_t i = 0; i < m_batchSize; i++)
 		{
 			if (overlaps[i].hEvent) CloseHandle(overlaps[i].hEvent);
 		}
@@ -343,6 +343,8 @@ void ReadingTask::IOCPRead()
 
 }
 
+void 
+
 void ReadingTask::AsyncRead()
 {
 	std::random_device dv;
@@ -357,18 +359,19 @@ void ReadingTask::AsyncRead()
 		CloseHandle(fileHandler);
 		exit(-1);
 	}
-
 	std::vector<HANDLE> handlers(m_batchSize);
 	std::vector<OVERLAPPED> overlaps(m_batchSize);
 	std::vector<std::unique_ptr<uint8_t[]>> buffers;
-	for (uint8_t i = 0; i < m_batchSize; i++)
+	for (uint64_t i = 0; i < m_batchSize; i++)
 	{
 		buffers.emplace_back(std::make_unique<uint8_t[]>(m_blockSizeInBytes));
 	}
 
+	uint64_t prevReadBytes = 0;
+	uint64_t prevElapsedTime = 0;
 	while (m_elapsedTime < m_testTime)
 	{
-		for (uint8_t i = 0; i < m_batchSize; i++)
+		for (uint64_t i = 0; i < m_batchSize; i++)
 		{
 			std::uint64_t startIndex = distribute(gen) * m_blockSizeInBytes;
 			overlaps[i].Offset = startIndex & UINT32_MAX;
@@ -377,11 +380,11 @@ void ReadingTask::AsyncRead()
 			overlaps[i].Internal = 0;
 			overlaps[i].InternalHigh = 0;
 			handlers[i] = overlaps[i].hEvent;
-
 		}
+
 		auto startTime = std::chrono::high_resolution_clock::now();
 
-		for (uint8_t i = 0; i < m_batchSize; i++)
+		for (uint64_t i = 0; i < m_batchSize; i++)
 		{
 			auto res = ReadFile(fileHandler, buffers[i].get(), m_blockSizeInBytes, NULL, &overlaps[i]);
 
@@ -396,7 +399,7 @@ void ReadingTask::AsyncRead()
 
 		auto endIOSendTime = std::chrono::high_resolution_clock::now();
 
-		for (uint8_t i = 0; i < m_batchSize; i += MAXIMUM_WAIT_OBJECTS)
+		for (uint64_t i = 0; i < m_batchSize; i += MAXIMUM_WAIT_OBJECTS)
 		{
 			DWORD remainRequest = m_batchSize - i;
 			DWORD waitCnt = remainRequest > MAXIMUM_WAIT_OBJECTS ? MAXIMUM_WAIT_OBJECTS : remainRequest;
@@ -418,13 +421,23 @@ void ReadingTask::AsyncRead()
 		m_queryLatency.emplace_back(duration.count());
 		m_sendLatency.emplace_back(sendDuration.count());
 		m_waitLatency.emplace_back(waitDuration.count());
-		m_elapsedTime += duration.count();
 		m_readTotalBytes += m_blockSizeInBytes * m_batchSize;
+		m_elapsedTime += duration.count();
 
-		for (uint8_t i = 0; i < m_batchSize; i++)
+		for (uint64_t i = 0; i < m_batchSize; i++)
 		{
 			if (overlaps[i].hEvent) CloseHandle(overlaps[i].hEvent);
 		}
+
+		if (m_readSpeed != 0 && (m_readTotalBytes - prevReadBytes >= (1 << 20)) && (m_elapsedTime - prevElapsedTime < (m_queryTime * 1000)))
+		{
+			uint64_t sleepTime = m_queryTime * 1000 - m_elapsedTime + prevElapsedTime;
+			std::this_thread::sleep_for(std::chrono::milliseconds(sleepTime / 1000));
+			m_elapsedTime += sleepTime;
+			prevReadBytes = m_readTotalBytes;
+			prevElapsedTime = m_elapsedTime;
+		}
+
 	}
 
 	CloseHandle(fileHandler);
@@ -449,7 +462,7 @@ void ReadingTask::AsyncLockRead()
 	std::vector<HANDLE> handlers(m_batchSize);
 	std::vector<OVERLAPPED> overlaps(m_batchSize);
 	std::vector<std::unique_ptr<uint8_t[]>> buffers;
-	for (uint8_t i = 0; i < m_batchSize; i++)
+	for (uint64_t i = 0; i < m_batchSize; i++)
 	{
 		buffers.emplace_back(std::make_unique<uint8_t[]>(m_blockSizeInBytes));
 	}
@@ -465,7 +478,7 @@ void ReadingTask::AsyncLockRead()
 
 	while (m_elapsedTime < m_testTime)
 	{
-		for (uint8_t i = 0; i < m_batchSize; i++)
+		for (uint64_t i = 0; i < m_batchSize; i++)
 		{
 			std::uint64_t startIndex = distribute(gen) * m_blockSizeInBytes;
 			overlaps[i].Offset = startIndex & UINT32_MAX;
@@ -478,7 +491,7 @@ void ReadingTask::AsyncLockRead()
 		}
 		auto startTime = std::chrono::high_resolution_clock::now();
 
-		for (uint8_t i = 0; i < m_batchSize; i++)
+		for (uint64_t i = 0; i < m_batchSize; i++)
 		{
 			auto res = ReadFile(fileHandler, buffers[i].get(), m_blockSizeInBytes, NULL, &overlaps[i]);
 
@@ -493,7 +506,7 @@ void ReadingTask::AsyncLockRead()
 
 		auto endIOSendTime = std::chrono::high_resolution_clock::now();
 
-		for (uint8_t i = 0; i < m_batchSize; i += MAXIMUM_WAIT_OBJECTS)
+		for (uint64_t i = 0; i < m_batchSize; i += MAXIMUM_WAIT_OBJECTS)
 		{
 			DWORD remainRequest = m_batchSize - i;
 			DWORD waitCnt = remainRequest > MAXIMUM_WAIT_OBJECTS ? MAXIMUM_WAIT_OBJECTS : remainRequest;
@@ -518,7 +531,7 @@ void ReadingTask::AsyncLockRead()
 		m_elapsedTime += duration.count();
 		m_readTotalBytes += m_blockSizeInBytes * m_batchSize;
 
-		for (uint8_t i = 0; i < m_batchSize; i++)
+		for (uint64_t i = 0; i < m_batchSize; i++)
 		{
 			if (overlaps[i].hEvent) CloseHandle(overlaps[i].hEvent);
 		}
