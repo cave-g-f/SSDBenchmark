@@ -17,7 +17,9 @@ ReadingTask::ReadingTask(
 	m_blockSizeInBytes = (DWORD)(m_blockSize) << 10;
 	m_readMethod = (ReadMethod)Config::get().getValUint8(configName::ReadMethod);
 	m_readSpeed = Config::get().getValUint64(configName::ReadSpeed) / Config::get().getValUint8(configName::ThreadsNum);
-	if(m_readSpeed != 0) m_queryTime = 1000 / m_readSpeed;
+	if (m_readSpeed != 0) m_queryTime = 1000 / m_readSpeed;
+
+	m_threadNumber = Config::get().getValUint8(configName::ThreadNumberForSSDRead);
 }
 
 void ReadingTask::IOCPLockRead()
@@ -205,7 +207,7 @@ void ReadingTask::IOCPRead()
 		buffers.emplace_back(std::make_unique<uint8_t[]>(m_blockSizeInBytes));
 	}
 
-	auto WorkThreadFunc = [iocp, this, threadExitKey, &completeCnt] (uint8_t tid) {
+	auto WorkThreadFunc = [iocp, this, threadExitKey, &completeCnt](uint8_t tid) {
 		int cnt = 0;
 		while (1)
 		{
@@ -226,34 +228,13 @@ void ReadingTask::IOCPRead()
 				std::cout << "GetQueuedCompletionStatus error " << std::endl;
 				exit(-1);
 			}
-			
+
 			if (readBytes == this->m_blockSizeInBytes)
 			{
 				completeCnt[tid] += 1;
 			}
 		}
 	};
-
-	//auto WorkThreadFunc = [iocp, this] {
-	//	int cnt = 0;
-	//	while (1)
-	//	{
-	//		OVERLAPPED* overlap = nullptr;
-	//		ULONG_PTR completionKey = 0;
-	//		DWORD transferBytes = 0;
-	//		GetQueuedCompletionStatus(iocp, &transferBytes, &completionKey, &overlap, INFINITE);
-
-	//		if (transferBytes != this->m_blockSizeInBytes)
-	//		{
-	//			std::cout << "GetQueuedCompletionStatus error " << std::endl;
-	//		}
-
-	//		cnt++;
-
-	//		if (cnt == this->m_batchSize) break;
-
-	//	}
-	//};
 
 	uint64_t totalCnt = 0;
 	while (m_elapsedTime < m_testTime)
@@ -302,7 +283,7 @@ void ReadingTask::IOCPRead()
 
 		for (uint8_t i = 0; i < workThreadNum; i++)
 		{
-			if(workThreads[i].joinable())
+			if (workThreads[i].joinable())
 				workThreads[i].join();
 		}
 		workThreads.clear();
@@ -343,7 +324,41 @@ void ReadingTask::IOCPRead()
 
 }
 
-void 
+void CALLBACK ReadingTask::MultiRead(PTP_CALLBACK_INSTANCE, void* pContext, PTP_WORK)
+{
+	ThreadDataBag* threadDataBag = reinterpret_cast<ThreadDataBag*>(pContext);
+	ReadingTask* readingTask = threadDataBag->m_readingTask;
+
+	for (uint64_t i = threadDataBag->m_startIndex; i < threadDataBag->m_endIndex; i++)
+	{
+		auto res = ReadFile(readingTask->m_file, readingTask->m_buffer[i].get(), readingTask->m_blockSizeInBytes, NULL, &threadDataBag->m_overlappedInfos[i]);
+
+		if (!res && GetLastError() != ERROR_IO_PENDING)
+		{
+			std::cout << "File read failed " << std::endl;
+			std::cout << GetLastError() << std::endl;
+			CloseHandle(readingTask->m_file);
+			exit(-1);
+		}
+	}
+
+	for (uint64_t i = threadDataBag->m_startIndex; i < threadDataBag->m_endIndex; i += MAXIMUM_WAIT_OBJECTS)
+	{
+		DWORD remainRequest = threadDataBag->m_endIndex - i;
+		DWORD waitCnt = remainRequest > MAXIMUM_WAIT_OBJECTS ? MAXIMUM_WAIT_OBJECTS : remainRequest;
+		DWORD waitRes = WaitForMultipleObjects(waitCnt, &threadDataBag->m_handlesInfos[i], TRUE, INFINITE);
+
+		if (waitRes == WAIT_FAILED)
+		{
+			std::cout << "wait failed " << std::endl;
+			std::cout << GetLastError() << std::endl;
+			CloseHandle(readingTask->m_file);
+			exit(-1);
+		}
+	}
+
+	return;
+}
 
 void ReadingTask::AsyncRead()
 {
@@ -351,20 +366,20 @@ void ReadingTask::AsyncRead()
 	std::mt19937 gen(dv());
 	std::uniform_int_distribution<int64_t> distribute(0, m_blockNum - 1);
 
-	HANDLE fileHandler = CreateFileA(m_fileName.c_str(), GENERIC_READ | FILE_READ_ATTRIBUTES, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_NO_BUFFERING | FILE_FLAG_OVERLAPPED, NULL);
-	if (fileHandler == INVALID_HANDLE_VALUE)
+	m_file = CreateFileA(m_fileName.c_str(), GENERIC_READ | FILE_READ_ATTRIBUTES, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_NO_BUFFERING | FILE_FLAG_OVERLAPPED, NULL);
+	if (m_file == INVALID_HANDLE_VALUE)
 	{
 		std::cout << "Create Source Handle failed" << std::endl;
 		std::cout << GetLastError() << std::endl;
-		CloseHandle(fileHandler);
+		CloseHandle(m_file);
 		exit(-1);
 	}
 	std::vector<HANDLE> handlers(m_batchSize);
 	std::vector<OVERLAPPED> overlaps(m_batchSize);
-	std::vector<std::unique_ptr<uint8_t[]>> buffers;
+	m_buffer.reserve(m_batchSize);
 	for (uint64_t i = 0; i < m_batchSize; i++)
 	{
-		buffers.emplace_back(std::make_unique<uint8_t[]>(m_blockSizeInBytes));
+		m_buffer.emplace_back(std::make_unique<uint8_t[]>(m_blockSizeInBytes));
 	}
 
 	uint64_t prevReadBytes = 0;
@@ -382,42 +397,62 @@ void ReadingTask::AsyncRead()
 			handlers[i] = overlaps[i].hEvent;
 		}
 
+		uint64_t queryNumForThread = m_batchSize / m_threadNumber;
+
+		std::vector<ThreadDataBag> threadParameters;
+		std::vector<PTP_WORK> multiWorks;
+
+		threadParameters.reserve(m_threadNumber);
+		multiWorks.reserve(m_threadNumber - 1);
+
 		auto startTime = std::chrono::high_resolution_clock::now();
 
-		for (uint64_t i = 0; i < m_batchSize; i++)
+		size_t startIndex = 0;
+		for (uint8_t i = 0; i < m_threadNumber - 1; i++)
 		{
-			auto res = ReadFile(fileHandler, buffers[i].get(), m_blockSizeInBytes, NULL, &overlaps[i]);
+			threadParameters.emplace_back(
+				startIndex,
+				startIndex + queryNumForThread,
+				&handlers[0],
+				&overlaps[0],
+				this
+			);
 
-			if (!res && GetLastError() != ERROR_IO_PENDING)
+			PTP_WORK workItem = CreateThreadpoolWork(MultiRead, &threadParameters.back(), nullptr);
+
+			if (workItem == nullptr)
 			{
-				std::cout << "File read failed " << std::endl;
+				std::cout << "Can't create workItem for multThread" << std::endl;
 				std::cout << GetLastError() << std::endl;
-				CloseHandle(fileHandler);
-				exit(-1);
+				threadParameters.pop_back();
+				continue;
 			}
+
+			SubmitThreadpoolWork(workItem);
+			multiWorks.push_back(workItem);
+			startIndex += queryNumForThread;
 		}
 
-		auto endIOSendTime = std::chrono::high_resolution_clock::now();
+		threadParameters.emplace_back(
+			startIndex,
+			m_batchSize,
+			&handlers[0],
+			&overlaps[0],
+			this
+		);
 
-		for (uint64_t i = 0; i < m_batchSize; i += MAXIMUM_WAIT_OBJECTS)
+		MultiRead(nullptr, &threadParameters.back(), nullptr);
+
+		for (auto& workItem : multiWorks)
 		{
-			DWORD remainRequest = m_batchSize - i;
-			DWORD waitCnt = remainRequest > MAXIMUM_WAIT_OBJECTS ? MAXIMUM_WAIT_OBJECTS : remainRequest;
-			DWORD waitRes = WaitForMultipleObjects(waitCnt, &handlers[i], TRUE, INFINITE);
-
-			if (waitRes == WAIT_FAILED)
-			{
-				std::cout << "wait failed " << std::endl;
-				std::cout << GetLastError() << std::endl;
-				CloseHandle(fileHandler);
-				exit(-1);
-			}
+			WaitForThreadpoolWorkCallbacks(workItem, false);
+			CloseThreadpoolWork(workItem);
 		}
 
 		auto endTime = std::chrono::high_resolution_clock::now();
 		auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
-		auto sendDuration = std::chrono::duration_cast<std::chrono::microseconds>(endIOSendTime - startTime);
-		auto waitDuration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - endIOSendTime);
+		auto sendDuration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
+		auto waitDuration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - endTime);
 		m_queryLatency.emplace_back(duration.count());
 		m_sendLatency.emplace_back(sendDuration.count());
 		m_waitLatency.emplace_back(waitDuration.count());
@@ -440,7 +475,7 @@ void ReadingTask::AsyncRead()
 
 	}
 
-	CloseHandle(fileHandler);
+	CloseHandle(m_file);
 }
 
 

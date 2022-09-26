@@ -20,9 +20,9 @@ public:
 		IOCPLockRead,
 	};
 
-	ReadingTask(
-		std::uint32_t readKeyNumberPerQuery,
+	ReadingTask(std::uint32_t readKeyNumberPerQuery,
 		std::uint8_t tId);
+	~ReadingTask() = default;
 
 	void Run();
 
@@ -32,10 +32,37 @@ public:
 	}
 
 private:
+
+	struct ThreadDataBag
+	{
+		ThreadDataBag(uint64_t startIndex,
+			uint64_t endIndex,
+			HANDLE* handlesInfos,
+			OVERLAPPED* overlappedInfos,
+			ReadingTask* readingTask) :
+			m_startIndex(startIndex),
+			m_endIndex(endIndex),
+			m_handlesInfos(handlesInfos),
+			m_overlappedInfos(overlappedInfos),
+			m_readingTask(readingTask)
+		{}
+
+		uint64_t m_startIndex;
+		uint64_t m_endIndex;
+		HANDLE* m_handlesInfos;
+		OVERLAPPED* m_overlappedInfos;
+		ReadingTask* m_readingTask;
+	};
+
 	void IOCPRead();
 	void IOCPLockRead();
 	void AsyncLockRead();
 	void AsyncRead();
+
+	static void CALLBACK MultiRead(PTP_CALLBACK_INSTANCE, void* pContext, PTP_WORK);
+
+	HANDLE m_file;
+	std::vector<std::shared_ptr<uint8_t[]>> m_buffer;
 
 public:
 	std::vector<std::uint64_t> m_queryLatency;
@@ -54,6 +81,7 @@ public:
 	std::uint64_t m_queryTime;
 	std::uint64_t m_blockNum;
 	std::uint64_t m_readSpeed;
+	std::uint64_t m_threadNumber;
 	ReadMethod m_readMethod;
 	DWORD m_blockSizeInBytes;
 };

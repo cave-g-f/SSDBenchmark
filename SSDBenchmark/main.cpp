@@ -97,7 +97,7 @@ void runReadBenchmark()
 	std::vector<uint64_t> totalWaitLatency;
 	std::uint64_t totalReadBytes = 0;
 
-	for (auto task : tasks)
+	for (auto& task : tasks)
 	{
 		totalLatency.insert(totalLatency.end(), task.m_queryLatency.begin(), task.m_queryLatency.end());
 		totalSendLatency.insert(totalSendLatency.end(), task.m_sendLatency.begin(), task.m_sendLatency.end());
@@ -200,6 +200,12 @@ int main(int argc, char* argv[])
 	uint8_t readMethod = atoi(argv[7]);
 	uint64_t readSpeed = _atoi64(argv[8]);
 	uint8_t ThreadNumberForSSDRead = atoi(argv[9]);
+
+	if (ThreadNumberForSSDRead > batchSize)
+	{
+		std::cout << "wrong threadNumberForSSDRead, smaller than batchsize" << std::endl;
+		exit(-1);
+	}
 
 	Config::get().save(configName::TestFile, &fileName, configType::string);
 	Config::get().save(configName::FileSize, &size, configType::uint8);
