@@ -16,11 +16,16 @@ public:
 		TestFile,
 		// GB
 		FileSize,
-		ReadKeyNumberPerQuery,
 		BatchSize,
 		ReadMethod,
-		ReadSpeed,
 		ThreadNumberForSSDRead,
+		MemoryLock,
+	};
+
+	enum class ReadMethod
+	{
+		AsyncRead = 0,
+		IOCPRead,
 	};
 
 
@@ -29,23 +34,22 @@ public:
 		uint8,
 		uint64,
 		string,
+		boolean,
 	};
 
 private:
 	using configTypeUint8 = std::unordered_map<ConfigName, uint8_t>;
 	using configTypeUint64 = std::unordered_map<ConfigName, uint64_t>;
 	using configTypeStr = std::unordered_map<ConfigName, std::string>;
+	using configTypeBoolean = std::unordered_map<ConfigName, bool>;
 
 	configTypeUint8 configSetsUint8 =
 	{
 		{ConfigName::WBufferLen, 1},
-		{ConfigName::ReadKeyNumberPerQuery, 1},
 	};
 	configTypeStr configSetsStr;
-	configTypeUint64 configSetsUint64 =
-	{
-		{ConfigName::ReadSpeed, 0},
-	};
+	configTypeUint64 configSetsUint64;
+	configTypeBoolean configSetsBoolean;
 
 	Config() {};
 	Config(const Config&) = delete;
@@ -57,7 +61,7 @@ public:
 		return instance;
 	}
 	
-	uint8_t getValUint8(const ConfigName& key)
+	std::uint8_t getValUint8(const ConfigName& key)
 	{
 		return configSetsUint8.at(key);
 	}
@@ -67,9 +71,14 @@ public:
 		return configSetsStr.at(key);
 	}
 
-	uint64_t getValUint64(const ConfigName& key)
+	std::uint64_t getValUint64(const ConfigName& key)
 	{
 		return configSetsUint64.at(key);
+	}
+
+	bool getValBoolean(const ConfigName& key)
+	{
+		return configSetsBoolean.at(key);
 	}
 	
 	void save(const ConfigName& key, void* value, const ConfigType& type)
@@ -85,6 +94,10 @@ public:
 		else if (type == ConfigType::uint64)
 		{
 			configSetsUint64[key] = *(reinterpret_cast<uint64_t*>(value));
+		}
+		else if (type == ConfigType::boolean)
+		{
+			configSetsBoolean[key] = *(reinterpret_cast<bool*>(value));
 		}
 	}
 

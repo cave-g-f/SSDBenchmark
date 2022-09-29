@@ -139,12 +139,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AsyncIO.cpp" />
+    <ClCompile Include="AsyncRead.cpp" />
+    <ClCompile Include="IOCPRead.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="ReadingTask.cpp" />
+    <ClCompile Include="ReadAlgoBase.cpp" />
+    <ClCompile Include="ReadPerformanceTest.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AsyncIO.h" />
+    <ClInclude Include="AsyncRead.h" />
     <ClInclude Include="Config.h" />
-    <ClInclude Include="ReadingTask.h" />
+    <ClInclude Include="IOCPRead.h" />
+    <ClInclude Include="ReadAlgoBase.h" />
+    <ClInclude Include="ReadPerformanceTest.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
