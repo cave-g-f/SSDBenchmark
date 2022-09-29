@@ -39,7 +39,7 @@ Usage: SSDBenchmark.exe filename size(GB) blockSize(KB) num_jobs testTime batchS
 
 `memoryLock`: Associates a virtual address range with the specified file handle. To lock the overlapped range in memory, and avoid frequently page swithcing. 
 
-To lock the overlapped range in memory, you should assign the privilege from the windows policy group first. The details can be referred to <https://statics.teams.cdn.office.net/evergreen-assets/safelinks/1/atp-safelinks.html>.
+To lock the overlapped range in memory, you should assign the privilege from the windows policy group first. The details can be referred to <https://learn.microsoft.com/en-us/sql/database-engine/configure-windows/enable-the-lock-pages-in-memory-option-windows?view=sql-server-ver16>.
 
 
 ## Results
