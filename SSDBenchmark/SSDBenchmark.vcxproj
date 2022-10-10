@@ -139,7 +139,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="AsyncIO.cpp" />
     <ClCompile Include="AsyncRead.cpp" />
     <ClCompile Include="IOCPRead.cpp" />
     <ClCompile Include="main.cpp" />

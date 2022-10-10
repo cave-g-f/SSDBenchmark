@@ -24,9 +24,6 @@
     <ClCompile Include="AsyncRead.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="AsyncIO.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ReadPerformanceTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
