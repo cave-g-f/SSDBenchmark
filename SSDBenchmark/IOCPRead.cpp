@@ -60,11 +60,6 @@ void IOCPRead::WaitForComplete(std::vector<std::unique_ptr<AsyncIORequest>>& ioR
 	}
 
 	m_workThreadVecs.clear();
-
-	for (auto& ioRequest : ioRequestVec)
-	{
-		ReleaseEvent(ioRequest.get());
-	}
 }
 
 void IOCPRead::WorkThreadFunc(std::uint64_t ioRequestCnt)

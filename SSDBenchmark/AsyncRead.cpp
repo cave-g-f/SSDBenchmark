@@ -25,11 +25,6 @@ void AsyncRead::WaitForComplete(std::vector<std::unique_ptr<AsyncIORequest>>& io
 			continue;
 		}
 	}
-
-	for (auto& ioRequest : ioRequestVec)
-	{
-		ReleaseEvent(ioRequest.get());
-	}
 }
 
 void AsyncRead::SendMultipleIoRequest(std::vector<std::unique_ptr<AsyncIORequest>>& ioRequestVec, ThreadDataBag* threadDataBag)
