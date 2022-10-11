@@ -18,21 +18,50 @@ IOCPRead::IOCPRead()
 		std::cout << "IOCP not support multiple thread for SSD Read, please set ThreadNumberForSSDRead to 1" << std::endl;
 		exit(-1);
 	}
+
+	m_completeEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+	if (m_completeEvent == NULL)
+	{
+		std::cout << "m_completeEvent create error, error code: " << GetLastError() << std::endl;
+		exit(-1);
+	}
+
+	m_exitKey = 1;
+
+	for (uint8_t i = 0; i < m_workThreadNumber; i++)
+	{
+		m_workThreadVecs.emplace_back(&IOCPRead::WorkThreadFunc, this);
+	}
 }
 
 void IOCPRead::Release()
 {
+	for (uint8_t i = 0; i < m_workThreadNumber; i++)
+	{
+		auto res = PostQueuedCompletionStatus(m_iocp, 0, m_exitKey, NULL);
+		if (!res)
+		{
+			std::cout << "PostQueuedCompletionStatus error, error code: " << GetLastError() << std::endl;
+			exit(-1);
+		}
+	}
+	
+
+	for (uint8_t i = 0; i < m_workThreadNumber; i++)
+	{
+		if (m_workThreadVecs[i].joinable())
+			m_workThreadVecs[i].join();
+	}
+
+	m_workThreadVecs.clear();
+
 	CloseHandle(m_iocp);
+	CloseHandle(m_completeEvent);
 	ReadAlgoBase::Release();
 }
 
 void IOCPRead::SendMultipleIoRequest(std::vector<std::unique_ptr<AsyncIORequest>>& ioRequestVec, ThreadDataBag* threadDataBag)
 {
-	for (uint8_t i = 0; i < m_workThreadNumber; i++)
-	{
-		m_workThreadVecs.emplace_back(&IOCPRead::WorkThreadFunc, this, threadDataBag->m_endIndex - threadDataBag->m_startIndex);
-	}
-
 	for (uint64_t i = threadDataBag->m_startIndex; i < threadDataBag->m_endIndex; i++)
 	{
 		std::unique_ptr<AsyncIORequest> asyncRequest = std::make_unique<AsyncIORequest>(m_blockSizeInBytes, threadDataBag->m_overlappedInfos[i]);
@@ -53,23 +82,19 @@ void IOCPRead::SendMultipleIoRequest(std::vector<std::unique_ptr<AsyncIORequest>
 
 void IOCPRead::WaitForComplete(std::vector<std::unique_ptr<AsyncIORequest>>& ioRequestVec)
 {
-	for (uint8_t i = 0; i < m_workThreadNumber; i++)
+	auto res = WaitForSingleObject(m_completeEvent, INFINITE);
+	if (res != WAIT_OBJECT_0)
 	{
-		if (m_workThreadVecs[i].joinable())
-			m_workThreadVecs[i].join();
-	}
-
-	m_workThreadVecs.clear();
-
-	for (auto& ioRequest : ioRequestVec)
-	{
-		ReleaseEvent(ioRequest.get());
+		std::cout << "wait for complete error, wair status: " << res << std::endl;
+		exit(-1);
 	}
 }
 
-void IOCPRead::WorkThreadFunc(std::uint64_t ioRequestCnt)
+void IOCPRead::WorkThreadFunc()
 {
-	std::uint64_t completeCnt = 0;
+	uint32_t completIO = 0;
+	SetThreadAffinityMask(GetCurrentThread(), 1);
+	SetThreadPriority(GetCurrentThread(), 2);
 	while (1)
 	{
 		LPOVERLAPPED overlap;
@@ -84,9 +109,18 @@ void IOCPRead::WorkThreadFunc(std::uint64_t ioRequestCnt)
 			exit(-1);
 		}
 
-		completeCnt++;
+		completIO++;
 
-		if (completeCnt == ioRequestCnt) break;
+		if (completIO == m_batchSize)
+		{
+			SetEvent(m_completeEvent);
+			completIO = 0;
+		}
+
+		if (completionKey == m_exitKey)
+		{
+			break;
+		}
 	}
 }
 

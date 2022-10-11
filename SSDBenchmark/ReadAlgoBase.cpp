@@ -100,6 +100,11 @@ void ReadAlgoBase::MultiRead(PTP_CALLBACK_INSTANCE, void* pContext, PTP_WORK)
 	threadDataBag->m_latencyInfo.m_queryLatency = queryLatency;
 	threadDataBag->m_latencyInfo.m_sendLatency = sendLatency;
 	threadDataBag->m_latencyInfo.m_waitLatency = waitLatency;
+
+	for (auto& ioRequest : ioRequestVec)
+	{
+		ReadAlgoBase->ReleaseEvent(ioRequest.get());
+	}
 }
 
 void ReadAlgoBase::Read()
