@@ -43,6 +43,7 @@ void ReadAlgoBase::RunReadAlgo()
 void ReadAlgoBase::ReleaseEvent(AsyncIORequest* ioRequest)
 {
 	ResetEvent(ioRequest->GetOverlap().hEvent);
+	CloseHandle(ioRequest->GetOverlap().hEvent);
 	ioRequest->GetOverlap().hEvent = nullptr;
 }
 
@@ -63,6 +64,13 @@ void ReadAlgoBase::CreateOverlap()
 		m_overlaps[i].Offset = startIndex & UINT32_MAX;
 		m_overlaps[i].OffsetHigh = startIndex >> 32;
 		m_overlaps[i].hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+
+		if (m_overlaps[i].hEvent == nullptr)
+		{
+			std::cout << "create event for overlap error, error code: " << GetLastError() << std::endl;
+			exit(-1);
+		}
+
 		m_overlaps[i].Internal = 0;
 		m_overlaps[i].InternalHigh = 0;
 	}
