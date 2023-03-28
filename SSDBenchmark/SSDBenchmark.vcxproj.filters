@@ -30,6 +30,15 @@
     <ClCompile Include="IOCPRead.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="IODepthRead.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SyncRead.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ETWLogger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Config.h">
@@ -50,5 +59,22 @@
     <ClInclude Include="IOCPRead.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="IODepthRead.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SyncRead.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ETWLogger.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="HashStoreETWTracing.res">
+      <Filter>Resource Files</Filter>
+    </Resource>
   </ItemGroup>
 </Project>

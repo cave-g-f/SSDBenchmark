@@ -1,4 +1,5 @@
 #include "ReadAlgoBase.h"
+#include "ETWLogger.h"
 
 #include <iostream>
 #include <chrono>
@@ -17,11 +18,21 @@ ReadAlgoBase::ReadAlgoBase()
 	m_queryNumberForThread = m_batchSize / m_threadNumber;
 	m_isMemoryLocked = false;
 	m_memoryLock = Config::get().getValBoolean(configName::MemoryLock);
+	m_readMethod = (Config::ReadMethod)Config::get().getValUint8(configName::ReadMethod);
+	m_etwTrace = Config::get().getValBoolean(configName::OpenETWTracing);
+	m_latencyThreshold = Config::get().getValUint64(configName::LatencyThreshold);
 
 	m_overlaps.reserve(m_batchSize);
 	m_overlaps.resize(m_batchSize);
 
-	m_fileHandler = CreateFileA(m_fileName.c_str(), GENERIC_READ | FILE_READ_ATTRIBUTES, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_NO_BUFFERING | FILE_FLAG_OVERLAPPED, NULL);
+	//auto flag = FILE_FLAG_NO_BUFFERING;
+	auto flag = FILE_FLAG_NO_BUFFERING;
+	if (m_readMethod != Config::ReadMethod::SyncRead)
+	{
+		flag |= FILE_FLAG_OVERLAPPED;
+	}
+
+	m_fileHandler = CreateFileA(m_fileName.c_str(), GENERIC_READ | FILE_READ_ATTRIBUTES, FILE_SHARE_READ, NULL, OPEN_EXISTING, flag, NULL);
 	if (m_fileHandler == INVALID_HANDLE_VALUE)
 	{
 		std::cout << "CreateFile Handle failed, error code: " << GetLastError() << std::endl;
@@ -52,6 +63,13 @@ void ReadAlgoBase::Release()
 	CloseHandle(m_fileHandler);
 }
 
+void ReadAlgoBase::clearLatency()
+{
+	m_queryLatency.clear();
+	m_sendLatency.clear();
+	m_waitLatency.clear();
+}
+
 void ReadAlgoBase::CreateOverlap()
 {
 	std::random_device dv;
@@ -76,6 +94,28 @@ void ReadAlgoBase::CreateOverlap()
 	}
 }
 
+bool ReadAlgoBase::ConvertGuidToString(const GUID& guid, std::string& strGUID)
+{
+	// Convert GUID to string GUID
+	// Reserve enough space for guid string.
+	const int c_guidStringSize = 64;
+
+	wchar_t wstr[c_guidStringSize];
+	char tempGuid[c_guidStringSize];
+	::StringFromGUID2(guid, wstr, c_guidStringSize);
+
+	const auto size = ::WideCharToMultiByte(CP_UTF8, 0, wstr, -1, nullptr, 0, nullptr, nullptr);
+
+	if (::WideCharToMultiByte(CP_UTF8, 0, wstr, -1, tempGuid, size, nullptr, nullptr) <= 0)
+	{
+		strGUID.clear();
+		return false;
+	}
+
+	strGUID = tempGuid;
+	return true;
+}
+
 void ReadAlgoBase::MultiRead(PTP_CALLBACK_INSTANCE, void* pContext, PTP_WORK)
 {
 	ThreadDataBag* threadDataBag = reinterpret_cast<ThreadDataBag*>(pContext);
@@ -83,7 +123,14 @@ void ReadAlgoBase::MultiRead(PTP_CALLBACK_INSTANCE, void* pContext, PTP_WORK)
 
 	std::vector<std::unique_ptr<AsyncIORequest>> ioRequestVec;
 
+	GUID guid;
+	::CoCreateGuid(&guid);
+	std::string guidStr;
+	ReadAlgoBase->ConvertGuidToString(guid, guidStr);
+
 	auto startTime = std::chrono::high_resolution_clock::now();
+
+	ETWLogger::LogRequestProcessEvent(&ReadData_GetBlocksContent_ReadBlocks_Begin_Event, guidStr);
 
 	ReadAlgoBase->SendMultipleIoRequest(ioRequestVec, threadDataBag);
 
@@ -92,10 +139,17 @@ void ReadAlgoBase::MultiRead(PTP_CALLBACK_INSTANCE, void* pContext, PTP_WORK)
 	ReadAlgoBase->WaitForComplete(ioRequestVec);
 
 	auto endTime = std::chrono::high_resolution_clock::now();
+	ETWLogger::LogRequestProcessEvent(&ReadData_GetBlocksContent_ReadBlocks_Complete_Event, guidStr);
 
 	auto sendLatency = std::chrono::duration_cast<std::chrono::microseconds>(endSendTime - startTime).count();
 	auto waitLatency = std::chrono::duration_cast<std::chrono::microseconds>(endTime - endSendTime).count();
 	auto queryLatency = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
+
+	if (ReadAlgoBase->m_etwTrace && queryLatency > ReadAlgoBase->m_latencyThreshold)
+	{
+		std::string command = "EventCreate /t WARNING /id 444 /l APPLICATION /so IndexPerror /d \"aaaaStop\"";
+		system(command.c_str());
+	}
 
 	threadDataBag->m_latencyInfo.m_queryLatency = queryLatency;
 	threadDataBag->m_latencyInfo.m_sendLatency = sendLatency;

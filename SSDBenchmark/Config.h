@@ -20,12 +20,20 @@ public:
 		ReadMethod,
 		ThreadNumberForSSDRead,
 		MemoryLock,
+		LatencyCoutnerDuration,
+		QPS,
+		PrintRawLatency,
+		IODepthThreshold,
+		OpenETWTracing,
+		LatencyThreshold,
 	};
 
 	enum class ReadMethod
 	{
 		AsyncRead = 0,
 		IOCPRead,
+		IODepthRead,
+		SyncRead,
 	};
 
 

@@ -1,0 +1,710 @@
+<!-- <?xml version="1.0" encoding="UTF-16"?> -->
+<instrumentationManifest xsi:schemaLocation="http://schemas.microsoft.com/win/2004/08/events eventman.xsd" xmlns="http://schemas.microsoft.com/win/2004/08/events" xmlns:win="http://manifests.microsoft.com/win/2004/08/windows/events" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:trace="http://schemas.microsoft.com/win/2004/08/events/trace">
+  <instrumentation>
+    <events>
+      <provider name="Microsoft-AdCenter-HashStore-ETWProvider" guid="{2EBC6BF8-99A6-4148-9170-858E206C6572}" symbol="HashStoreEtwTracingProviderGuid" resourceFileName="F:\personal\project\SSDBenchmark\x64\Release\SSDBenchmark.exe" messageFileName="F:\personal\project\SSDBenchmark\x64\Release\SSDBenchmark.exe" message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.provider.message)">
+        <keywords>
+            <keyword name="HashStore" symbol="HASH_STORE" mask="0x1" />
+        </keywords>
+        
+        <tasks>
+          <!-- HashStore Refresh Process Tasks -->
+          <task name="HashStoreDataRefreshTask" symbol="HASHSTORE_DATA_REFRESH_TASK"
+                value="1" eventGUID="{062C31EF-D0FA-413D-A9BA-1A74FEEEA41B}"
+                message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.task.HashStoreDataRefreshTask.message)">
+            <opcodes>
+              <opcode name="Refresh_PrepareUpdate_Begin"
+                  message="$(string.HashStoreDataRefreshTask.Refresh_PrepareUpdate_Begin.message)"
+                  symbol="OPCODE_REFRESH_PREPARE_UPDATE_BEGIN"
+                  value="11"
+                            />
+              <opcode name="Refresh_PrepareUpdate_Complete"
+                  message="$(string.HashStoreDataRefreshTask.Refresh_PrepareUpdate_Complete.message)"
+                  symbol="OPCODE_REFRESH_PREPARE_UPDATE_COMPLETE"
+                  value="12"
+                            />
+              <opcode name="Refresh_UpdateTable_Begin"
+                  message="$(string.HashStoreDataRefreshTask.Refresh_UpdateTable_Begin.message)"
+                  symbol="OPCODE_REFRESH_UPDATETABLE_BEGIN_BEGIN"
+                  value="13"
+                            />
+              <opcode name="Refresh_UpdateTable_Complete"
+                  message="$(string.HashStoreDataRefreshTask.Refresh_UpdateTable_Complete.message)"
+                  symbol="OPCODE_REFRESH_UPDATETABLE_COMPLETE_COMPLETE"
+                  value="14"
+                            />
+            </opcodes>
+          </task>
+
+          <!-- HashStore ReadData High Level Process Tasks -->
+          <task name="HashStoreReadDataTask" symbol="HASHSTORE_READDATA_PROCESSING_TASK"
+                value="2" eventGUID="{CD7C1252-2CB2-46CC-A32E-D5A0308371D6}"
+                message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.task.HashStoreReadDataTask.message)">
+            <opcodes>
+              <opcode name="ReadData_Prepare_Begin"
+                  message="$(string.HashStoreReadDataTask.ReadData_Prepare_Begin.message)"
+                  symbol="OPCODE_READDATA_PREPARE_BEGIN"
+                  value="11"
+                            />
+              <opcode name="ReadData_Prepare_Complete"
+                  message="$(string.HashStoreReadDataTask.ReadData_Prepare_Complete.message)"
+                  symbol="OPCODE_READDATA_PREPARE_COMPLETE"
+                  value="12"
+                            />
+              <opcode name="ReadData_GetBlockInfo_Begin"
+                  message="$(string.HashStoreReadDataTask.ReadData_GetBlockInfo_Begin.message)"
+                  symbol="OPCODE_READDATA_GET_BLOCKINFO_BEGIN"
+                  value="13"
+                            />
+              <opcode name="ReadData_GetBlockInfo_Complete"
+                  message="$(string.HashStoreReadDataTask.ReadData_GetBlockInfo_Complete.message)"
+                  symbol="OPCODE_READDATA_GET_BLOCK_INFO_COMPLETE"
+                  value="14"
+                            />
+              <opcode name="ReadData_GetBlocksContent_Begin"
+                  message="$(string.HashStoreReadDataTask.ReadData_GetBlocksContent_Begin.message)"
+                  symbol="OPCODE_GET_BLOCK_CONTENT_BEGIN"
+                  value="15"
+                            />
+              <opcode name="ReadData_GetBlocksContent_Complete"
+                  message="$(string.HashStoreReadDataTask.ReadData_GetBlocksContent_Complete.message)"
+                  symbol="OPCODE_GET_BLOCK_CONTENT_COMPLETE"
+                  value="16"
+                            />
+            </opcodes>
+          </task>
+
+          <!-- Cache Process Tasks -->
+          <task name="HashStoreCacheProcessingTask" symbol="HASHSTORE_CACHE_PROCESSING_TASK"
+                value="3" eventGUID="{CF4D0AA5-1779-4934-BB7B-1A25417EC611}"
+                message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.task.HashStoreCacheProcessingTask.message)">
+            <opcodes>
+              <opcode name="Cache_Lookup_Begin"
+                  message="$(string.HashStoreCacheProcessingTask.Cache_Lookup_Begin.message)"
+                  symbol="OPCODE_CACHE_LOOKUP_BEGIN"
+                  value="11"
+                            />
+              <opcode name="Cache_Lookup_Complete"
+                  message="$(string.HashStoreCacheProcessingTask.Cache_Lookup_Complete.message)"
+                  symbol="OPCODE_UPDATE_CACHE_COMPLETE"
+                  value="12"
+                            />
+              <opcode name="Cache_ReleaseHandle_Begin"
+                  message="$(string.HashStoreCacheProcessingTask.Cache_ReleaseHandle_Begin.message)"
+                  symbol="OPCODE_CACHE_RELEASE_HANDLE_BEGIN"
+                  value="13"
+                            />
+              <opcode name="Cache_ReleaseHandle_Complete"
+                  message="$(string.HashStoreCacheProcessingTask.Cache_ReleaseHandle_Complete.message)"
+                  symbol="OPCODE_CACHE_RELEASE_HANDLE_COMPLETE"
+                  value="14"
+                            />
+              <opcode name="Cache_Update_Begin"
+                  message="$(string.HashStoreCacheProcessingTask.Cache_Update_Begin.message)"
+                  symbol="OPCODE_CACHE_UPDATE_BEGIN"
+                  value="15"
+                            />
+              <opcode name="Cache_Update_Complete"
+                  message="$(string.HashStoreCacheProcessingTask.Cache_Update_Complete.message)"
+                  symbol="OPCODE_CACHE_UPDATE_COMPLETE"
+                  value="16"
+                            />
+            </opcodes>
+          </task>
+
+
+          <!-- BlockData Process Tasks -->
+          <task name="HashStoreGetContentsDetailsTask" symbol="HASHSTORE_BLOCKDATA_PROCESSING_TASK"
+                value="4" eventGUID="{2990FF4A-9ED8-41E4-8840-4F44B890FD6A}"
+                message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.task.HashStoreGetContentsDetailsTask.message)">
+            <opcodes>
+                <opcode name="ReadData_GetBlocksContent_ReadBlocks_Begin"
+                message="$(string.HashStoreGetContentsDetailsTask.GetBlocksContent_ReadBlocks_Begin.message)"
+                symbol="OPCODE_READ_BLOCKS_BEGIN"
+                value="11"
+                            />
+                <opcode name="ReadData_GetBlocksContent_ReadBlocks_Complete"
+                message="$(string.HashStoreGetContentsDetailsTask.GetBlocksContent_ReadBlocks_Complete.message)"
+                symbol="OPCODE_READ_BLOCKS_COMPLETE"
+                value="12"
+                            />
+                <opcode name="ReadData_GetBlocksContent_WaitForIO_Begin"
+                message="$(string.HashStoreGetContentsDetailsTask.GetBlocksContent_WaitForIO_Begin.message)"
+                symbol="OPCODE_WAIT_FOR_IO_BEGIN"
+                value="13"
+                            />
+                <opcode name="ReadData_GetBlocksContent_WaitForIO_Complete"
+                message="$(string.HashStoreGetContentsDetailsTask.GetBlocksContent_WaitForIO_Complete.message)"
+                symbol="OPCODE_WAIT_FOR_IO_COMPLETE"
+                value="14"
+                            />
+                <opcode name="ReadData_GetBlocksContent_GetRecordsAndUpdateCache_Begin"
+                message="$(string.HashStoreGetContentsDetailsTask.GetBlocksContent_GetRecordsAndUpdateCache_Begin.message)"
+                symbol="OPCODE_GET_RECORDS_AND_UPDATE_CACHE_BEGIN"
+                value="15"
+                            />
+                <opcode name="ReadData_GetBlocksContent_GetRecordsAndUpdateCache_Complete"
+                message="$(string.HashStoreGetContentsDetailsTask.GetBlocksContent_GetRecordsAndUpdateCache_Complete.message)"
+                symbol="OPCODE_GET_RECORDS_AND_UPDATE_CACHE_COMPLETE"
+                value="16"
+                            />
+            </opcodes>
+          </task>
+
+          <!-- ReadData Summary Information Tasks -->
+          <task name="HashStoreRequestSummaryTask" symbol="HASHSTORE_REQUEST_SUMMARY_TASK"
+                value="5" eventGUID="{E9291F7E-3586-4928-878D-3B127CC16249}"
+                message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.task.HashStoreRequestSummaryTask.message)">
+            <opcodes>
+              <opcode name="RequestProcessSummary"
+                   message="$(string.HashStoreRequestSummaryTask.RequestProcessSummary.message)"
+                   symbol="OPCODE_REQUEST_PROCESS_SUMMARY"
+                   value="11"
+                            />
+            </opcodes>
+          </task>
+
+          <!-- HashStore Information Tasks -->
+          <task name="HashStoreInformationTask" symbol="HASHSTORE_INFORMATION_TASK"
+              value="6" eventGUID="{35375424-9A0A-451E-A0E0-41F4D4B503F9}"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.task.HashStoreInformationTask.message)">
+            <opcodes>
+              <opcode name="ReadMemoryRecord"
+                   message="$(string.HashStoreInformationTask.ReadMemoryRecord.message)"
+                   symbol="OPCODE_READ_MEMORY_RECORD"
+                   value="11"
+                            />
+              <opcode name="HittedKey"
+                   message="$(string.HashStoreInformationTask.HittedKey.message)"
+                   symbol="OPCODE_HITTED_KEY"
+                   value="12"
+                            />
+            </opcodes>
+          </task>
+        
+          <!-- HashStore Information Tasks -->
+          <task name="HashStoreRehashTask" symbol="HASHSTORE_REHASH_TASK"
+              value="7" eventGUID="{DFD79980-2A89-402B-A099-3BD023507C10}"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.task.HashStoreRehashTask.message)">
+            <opcodes>
+              <opcode name="RehashBegin"
+                   message="$(string.HashStoreRehashTask.RehashBegin.message)"
+                   symbol="OPCODE_REHASH_BEING"
+                   value="11"
+                            />
+              <opcode name="RehashComplete"
+                   message="$(string.HashStoreRehashTask.RehashComplete.message)"
+                   symbol="OPCODE_REHASH_COMPLETE"
+                   value="12"
+                            />
+              <opcode name="RehashExpandBegin"
+                   message="$(string.HashStoreRehashTask.RehashExpandBegin.message)"
+                   symbol="OPCODE_EXPAND_BEING"
+                   value="13"
+                            />
+              <opcode name="RehashExpandComplete"
+                   message="$(string.HashStoreRehashTask.RehashExpandComplete.message)"
+                   symbol="OPCODE_EXPAND_COMPLETE"
+                   value="14"
+                            />
+            </opcodes>
+          </task>
+        
+        </tasks>
+
+        <!-- All ETW Events -->
+        <events>
+          <event value="1"
+              version="0"
+              level="win:Informational"
+              template="ReadMemoryRecordTemplate"
+              opcode="ReadMemoryRecord"
+              task="HashStoreInformationTask"
+              symbol="ReadMemoryRecordEvent"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.event.1.message)"
+              keywords="HashStore"
+                   />
+          <event value="2"
+              version="0"
+              level="win:Informational"
+              template="HittedKeyTemplate"
+              opcode="HittedKey"
+              task="HashStoreInformationTask"
+              symbol="HittedKeyEvent"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.event.2.message)">
+              keywords="HashStore"
+          </event>
+
+           <!-- Refresh Events -->
+           <event value="3"
+              version="0"
+              level="win:Informational"
+              template="RequestProcessingTemplate"
+              opcode="Refresh_PrepareUpdate_Begin"
+              task="HashStoreDataRefreshTask"
+              symbol="Refresh_PrepareUpdate_Begin_Event"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.event.3.message)"
+              keywords="HashStore"
+                    />
+           <event value="4"
+              version="0"
+              level="win:Informational"
+              template="RequestProcessingTemplate"
+              opcode="Refresh_PrepareUpdate_Complete"
+              task="HashStoreDataRefreshTask"
+              symbol="Refresh_PrepareUpdate_Complete_Event"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.event.4.message)"
+              keywords="HashStore"
+                    />
+           <event value="5"
+              version="0"
+              level="win:Informational"
+              template="RequestProcessingTemplate"
+              opcode="Refresh_UpdateTable_Begin"
+              task="HashStoreDataRefreshTask"
+              symbol="Refresh_UpdateTable_Begin_Event"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.event.5.message)"
+              keywords="HashStore"
+                    />
+           <event value="6"
+              version="0"
+              level="win:Informational"
+              template="RequestProcessingTemplate"
+              opcode="Refresh_UpdateTable_Complete"
+              task="HashStoreDataRefreshTask"
+              symbol="Refresh_UpdateTable_Complete_Event"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.event.6.message)"
+              keywords="HashStore"
+                    />
+
+           <!-- HashStore ReadData High Level Events -->
+           <event value="7"
+              version="0"
+              level="win:Informational"
+              template="RequestProcessingTemplate"
+              opcode="ReadData_Prepare_Begin"
+              task="HashStoreReadDataTask"
+              symbol="ReadData_Prepare_Begin_Event"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.event.7.message)"
+              keywords="HashStore"
+                    />
+          <event value="8"
+              version="0"
+              level="win:Informational"
+              template="RequestProcessingTemplate"
+              opcode="ReadData_Prepare_Complete"
+              task="HashStoreReadDataTask"
+              symbol="ReadData_Prepare_Complete_Event"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.event.8.message)"
+              keywords="HashStore"
+                  />
+           <event value="9"
+              version="0"
+              level="win:Informational"
+              template="RequestProcessingTemplate"
+              opcode="ReadData_GetBlockInfo_Begin"
+              task="HashStoreReadDataTask"
+              symbol="ReadData_GetBlockInfo_Begin_Event"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.event.9.message)"
+              keywords="HashStore"
+                    />
+           <event value="10"
+              version="0"
+              level="win:Informational"
+              template="RequestProcessingTemplate"
+              opcode="ReadData_GetBlockInfo_Complete"
+              task="HashStoreReadDataTask"
+              symbol="ReadData_GetBlockInfo_Complete_Event"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.event.10.message)"
+              keywords="HashStore"
+                    />
+           <event value="11"
+              version="0"
+              level="win:Informational"
+              template="RequestProcessingTemplate"
+              opcode="ReadData_GetBlocksContent_Begin"
+              task="HashStoreReadDataTask"
+              symbol="ReadData_GetBlocksContent_Begin_Event"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.event.11.message)"
+              keywords="HashStore"
+                    />
+           <event value="12"
+              version="0"
+              level="win:Informational"
+              template="RequestProcessingTemplate"
+              opcode="ReadData_GetBlocksContent_Complete"
+              task="HashStoreReadDataTask"
+              symbol="ReadData_GetBlocksContent_Complete_Event"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.event.12.message)"
+              keywords="HashStore"
+                    />
+
+           <!-- Cache Process Events -->
+           <event value="13"
+              version="0"
+              level="win:Informational"
+              template="RequestProcessingTemplate"
+              opcode="Cache_Lookup_Begin"
+              task="HashStoreCacheProcessingTask"
+              symbol="Cache_Lookup_Begin_Event"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.event.13.message)"
+              keywords="HashStore"
+                    />
+           <event value="14"
+              version="0"
+              level="win:Informational"
+              template="RequestProcessingTemplate"
+              opcode="Cache_Lookup_Complete"
+              task="HashStoreCacheProcessingTask"
+              symbol="Cache_Lookup_Complete_Event"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.event.14.message)"
+              keywords="HashStore"
+                    />
+           <event value="15"
+              version="0"
+              level="win:Informational"
+              template="RequestProcessingTemplate"
+              opcode="Cache_ReleaseHandle_Begin"
+              task="HashStoreCacheProcessingTask"
+              symbol="Cache_ReleaseHandle_Begin_Event"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.event.15.message)"
+              keywords="HashStore"
+                    />
+           <event value="16"
+              version="0"
+              level="win:Informational"
+              template="RequestProcessingTemplate"
+              opcode="Cache_ReleaseHandle_Complete"
+              task="HashStoreCacheProcessingTask"
+              symbol="Cache_ReleaseHandle_Complete_Event"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.event.16.message)"
+              keywords="HashStore"
+                    />
+           <event value="17"
+              version="0"
+              level="win:Informational"
+              template="RequestProcessingTemplate"
+              opcode="Cache_Update_Begin"
+              task="HashStoreCacheProcessingTask"
+              symbol="Cache_Update_Begin_Event"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.event.17.message)"
+              keywords="HashStore"
+                    />
+           <event value="18"
+              version="0"
+              level="win:Informational"
+              template="RequestProcessingTemplate"
+              opcode="Cache_Update_Complete"
+              task="HashStoreCacheProcessingTask"
+              symbol="Cache_Update_Complete_Event"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.event.18.message)"
+              keywords="HashStore"
+                    />
+
+           <!-- BlocksContent Process Events -->
+           <event value="19"
+              version="0"
+              level="win:Informational"
+              template="RequestProcessingTemplate"
+              opcode="ReadData_GetBlocksContent_ReadBlocks_Begin"
+              task="HashStoreGetContentsDetailsTask"
+              symbol="ReadData_GetBlocksContent_ReadBlocks_Begin_Event"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.event.19.message)"
+              keywords="HashStore"
+                    />
+           <event value="20"
+              version="0"
+              level="win:Informational"
+              template="RequestProcessingTemplate"
+              opcode="ReadData_GetBlocksContent_ReadBlocks_Complete"
+              task="HashStoreGetContentsDetailsTask"
+              symbol="ReadData_GetBlocksContent_ReadBlocks_Complete_Event"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.event.20.message)"
+              keywords="HashStore"
+                    />
+           <event value="21"
+              version="0"
+              level="win:Informational"
+              template="RequestProcessingTemplate"
+              opcode="ReadData_GetBlocksContent_WaitForIO_Begin"
+              task="HashStoreGetContentsDetailsTask"
+              symbol="ReadData_GetBlocksContent_WaitForIO_Begin_Event"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.event.21.message)"
+              keywords="HashStore"
+                    />
+           <event value="22"
+              version="0"
+              level="win:Informational"
+              template="RequestProcessingTemplate"
+              opcode="ReadData_GetBlocksContent_WaitForIO_Complete"
+              task="HashStoreGetContentsDetailsTask"
+              symbol="ReadData_GetBlocksContent_WaitForIO_Complete_Event"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.event.22.message)"
+              keywords="HashStore"
+                    />
+           <event value="23"
+              version="0"
+              level="win:Informational"
+              template="RequestProcessingTemplate"
+              opcode="ReadData_GetBlocksContent_GetRecordsAndUpdateCache_Begin"
+              task="HashStoreGetContentsDetailsTask"
+              symbol="ReadData_GetBlocksContent_GetRecordsAndUpdateCache_Begin_Event"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.event.23.message)"
+              keywords="HashStore"
+                    />
+           <event value="24"
+              version="0"
+              level="win:Informational"
+              template="RequestProcessingTemplate"
+              opcode="ReadData_GetBlocksContent_GetRecordsAndUpdateCache_Complete"
+              task="HashStoreGetContentsDetailsTask"
+              symbol="ReadData_GetBlocksContent_GetRecordsAndUpdateCache_Complete_Event"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.event.24.message)"
+              keywords="HashStore"
+                    />
+
+           <!-- ReadData Summary Events -->
+           <event value="25"
+              version="0"
+              level="win:Informational"
+              template="RequestSummaryTemplate"
+              opcode="RequestProcessSummary"
+              task="HashStoreRequestSummaryTask"
+              symbol="RequestProcessSummaryEvent"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.event.25.message)"
+              keywords="HashStore"
+                    />
+        
+          
+           <!-- ReadData Summary Events -->
+           <event value="26"
+              version="0"
+              level="win:Informational"
+              template="RequestProcessingTemplate"
+              opcode="RehashBegin"
+              task="HashStoreRehashTask"
+              symbol="RehashBeginEvent"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.event.26.message)"
+              keywords="HashStore"
+                    />
+            <event value="27"
+              version="0"
+              level="win:Informational"
+              template="RequestProcessingTemplate"
+              opcode="RehashComplete"
+              task="HashStoreRehashTask"
+              symbol="RehashCompleteEvent"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.event.27.message)"
+              keywords="HashStore"
+                    />
+            <event value="28"
+              version="0"
+              level="win:Informational"
+              template="RequestProcessingTemplate"
+              opcode="RehashExpandBegin"
+              task="HashStoreRehashTask"
+              symbol="RehashExpandBeginEvent"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.event.28.message)"
+              keywords="HashStore"
+                    />
+              <event value="29"
+              version="0"
+              level="win:Informational"
+              template="RequestProcessingTemplate"
+              opcode="RehashExpandComplete"
+              task="HashStoreRehashTask"
+              symbol="RehashExpandCompleteEvent"
+              message="$(string.Microsoft-AdCenter-HashStore-ETWProvider.event.29.message)"
+              keywords="HashStore"
+                    />
+          
+        </events>
+        <levels>
+        </levels>
+        <templates>
+          <template tid="ReadMemoryRecordTemplate">
+            <data name="recordAddress" inType="win:UInt64" outType="win:unsignedLong">
+            </data>
+            <data name="recordSize" inType="win:UInt32" outType="xs:unsignedInt">
+            </data>
+          </template>
+          <template tid="HittedKeyTemplate">
+            <data name="RequestGuid" inType="win:AnsiString" outType="xs:string">
+            </data>
+            <data name="Key" inType="win:AnsiString" outType="xs:string">
+            </data>
+            <data name="TableName" inType="win:AnsiString" outType="xs:string">
+            </data>
+          </template>
+
+          <template tid="RequestProcessingTemplate">
+            <data name="RequestGuid" inType="win:AnsiString" outType="xs:string">
+            </data>
+          </template>
+          <template tid="RequestSummaryTemplate">
+            <data name="RequestGuid" inType="win:AnsiString" outType="xs:string">
+            </data>
+            <data name="RequestMessage" inType="win:AnsiString" outType="xs:string">
+            </data>
+          </template>
+        </templates>
+      </provider>
+    </events>
+  </instrumentation>
+  <localization>
+    <resources culture="en-US">
+      <stringTable>
+        <string id="level.Informational" value="Information">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.provider.message" value="Microsoft-AdCenter-HashStore-ETWProvider">
+        </string>
+
+        <!-- Task Messages -->
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.task.HashStoreDataRefreshTask.message" value="HashStore Data Refresh Tasks">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.task.HashStoreReadDataTask.message" value="HashStore ReadData Tasks">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.task.HashStoreCacheProcessingTask.message" value="HashStore Cache Processing Tasks">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.task.HashStoreGetContentsDetailsTask.message" value="HashStore Get Contents Details Tasks">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.task.HashStoreRequestSummaryTask.message" value="HashStore Request Summary Tasks">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.task.HashStoreInformationTask.message" value="HashStore Information Tasks">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.task.HashStoreRehashTask.message" value="HashStore Rehash Tasks">
+        </string>
+
+        <!-- OpCode Message -->
+        <string id="HashStoreDataRefreshTask.Refresh_PrepareUpdate_Begin.message" value="Refresh Prepare Update Begin!">
+        </string>
+        <string id="HashStoreDataRefreshTask.Refresh_PrepareUpdate_Complete.message" value="Refresh Prepare Update Complete!">
+        </string>
+        <string id="HashStoreDataRefreshTask.Refresh_UpdateTable_Begin.message" value="Refresh Update Table Begin!">
+        </string>
+        <string id="HashStoreDataRefreshTask.Refresh_UpdateTable_Complete.message" value="Refresh Update Table Complete!">
+        </string>
+
+        <string id="HashStoreReadDataTask.ReadData_Prepare_Begin.message" value="Read Data Prepare Begin!">
+        </string>
+        <string id="HashStoreReadDataTask.ReadData_Prepare_Complete.message" value="Read Data Prepare Complete!">
+        </string>
+        <string id="HashStoreReadDataTask.ReadData_GetBlockInfo_Begin.message" value="Get Block Info Begin!">
+        </string>
+        <string id="HashStoreReadDataTask.ReadData_GetBlockInfo_Complete.message" value="Get Block Info Complete!">
+        </string>
+        <string id="HashStoreReadDataTask.ReadData_GetBlocksContent_Begin.message" value="Get Block Content Begin!">
+        </string>
+        <string id="HashStoreReadDataTask.ReadData_GetBlocksContent_Complete.message" value="Get Block Content Complete!">
+        </string>
+
+        <string id="HashStoreCacheProcessingTask.Cache_Update_Begin.message" value="Cache Update Begin!">
+        </string>
+        <string id="HashStoreCacheProcessingTask.Cache_Update_Complete.message" value="Cache Update Complete!">
+        </string>
+        <string id="HashStoreCacheProcessingTask.Cache_Lookup_Begin.message" value="Cache Lookup Begin!">
+        </string>
+        <string id="HashStoreCacheProcessingTask.Cache_Lookup_Complete.message" value="Cache Lookup Complete!">
+        </string>
+        <string id="HashStoreCacheProcessingTask.Cache_ReleaseHandle_Begin.message" value="Cache Release Handle Begin!">
+        </string>
+        <string id="HashStoreCacheProcessingTask.Cache_ReleaseHandle_Complete.message" value="Cache Release Handle Complete!">
+        </string>
+
+        <string id="HashStoreGetContentsDetailsTask.GetBlocksContent_ReadBlocks_Begin.message" value="Read Blocks Begin!">
+        </string>
+        <string id="HashStoreGetContentsDetailsTask.GetBlocksContent_ReadBlocks_Complete.message" value="Read Blocks Complete!">
+        </string>
+        <string id="HashStoreGetContentsDetailsTask.GetBlocksContent_WaitForIO_Begin.message" value="Wait For IO Begin!">
+        </string>
+        <string id="HashStoreGetContentsDetailsTask.GetBlocksContent_WaitForIO_Complete.message" value="Wait For IO Complete!">
+        </string>
+        <string id="HashStoreGetContentsDetailsTask.GetBlocksContent_GetRecordsAndUpdateCache_Begin.message" value="GetRecords And Update Cache Begin!">
+        </string>
+        <string id="HashStoreGetContentsDetailsTask.GetBlocksContent_GetRecordsAndUpdateCache_Complete.message" value="GetRecords And Update Cache Complete!">
+        </string>
+
+        <string id="HashStoreRequestSummaryTask.RequestProcessSummary.message" value="Request Process Summary!">
+        </string>
+
+        <string id="HashStoreInformationTask.ReadMemoryRecord.message" value="Read Memory Record!">
+        </string>
+        <string id="HashStoreInformationTask.HittedKey.message" value="Hitted Key">
+        </string>
+          
+        <string id="HashStoreRehashTask.RehashBegin.message" value="Rehash Begin!">
+        </string>
+        <string id="HashStoreRehashTask.RehashComplete.message" value="Rehash Complete!">
+        </string>
+        <string id="HashStoreRehashTask.RehashExpandBegin.message" value="Rehash Expand Begin!">
+        </string>
+        <string id="HashStoreRehashTask.RehashExpandComplete.message" value="Rehash Expand Complete!">
+        </string>
+
+        <!-- Event Messages -->
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.event.2.message" value="This event record hitted key and the table name">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.event.1.message" value="Read record %1 from memory table, record size is %2">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.event.3.message" value="Refresh CopyFile Begin, GUID: %1">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.event.4.message" value="Refresh CopyFile Complete, GUID: %1">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.event.5.message" value="Refresh LoadFile Begin, GUID: %1">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.event.6.message" value="Refresh LoadFile Complete, GUID: %1">
+        </string>
+
+
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.event.7.message" value="ReadData Prepare Begin, GUID: %1">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.event.8.message" value="ReadData Prepare Complete, GUID: %1">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.event.9.message" value="Get BlockInfo Begin, GUID: %1">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.event.10.message" value="Get BlockInfo Complete, GUID: %1">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.event.11.message" value="Get Block Content Begin, GUID: %1">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.event.12.message" value="Get Block Content Complete, GUID: %1">
+        </string>
+
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.event.13.message" value="Cache Lookup Begin, GUID: %1">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.event.14.message" value="Cache Lookup Complete, GUID: %1">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.event.15.message" value="Cache Release Handle Begin, GUID: %1">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.event.16.message" value="Cache Release Handle Complete, GUID: %1">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.event.17.message" value="Cache Update Begin, GUID: %1">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.event.18.message" value="Cache Update Complete, GUID: %1">
+        </string>
+
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.event.19.message" value="Read Blocks Begin, GUID: %1">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.event.20.message" value="Read Blocks Complete, GUID: %1">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.event.21.message" value="Wait For IO Begin, GUID: %1">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.event.22.message" value="Wait For IO Complete, GUID: %1">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.event.23.message" value="Get Records And Update Cache Begin, GUID: %1">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.event.24.message" value="Get Records And Update Cache Complete, GUID: %1">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.event.25.message" value="Request Process Summary, GUID: %1, message: %2">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.event.26.message" value="Rehash Begin, GUID: %1">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.event.27.message" value="Rehash Complete, GUID: %1">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.event.28.message" value="Rehash Expand Begin, GUID: %1">
+        </string>
+        <string id="Microsoft-AdCenter-HashStore-ETWProvider.event.29.message" value="Rehash Expand Complete, GUID: %1">
+        </string>
+      </stringTable>
+    </resources>
+  </localization>
+</instrumentationManifest>

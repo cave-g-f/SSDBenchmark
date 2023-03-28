@@ -43,6 +43,7 @@ public:
 	ReadAlgoBase();
 	void RunReadAlgo();
 	virtual void Release();
+	void clearLatency();
 
 protected:
 	void Read();
@@ -52,6 +53,7 @@ protected:
 	virtual void SendMultipleIoRequest(std::vector<std::unique_ptr<AsyncIORequest>>& ioRequestVec, ThreadDataBag* threadDataBag) = 0;
 	static void CALLBACK MultiRead(PTP_CALLBACK_INSTANCE, void* pContext, PTP_WORK);
 	virtual void WaitForComplete(std::vector<std::unique_ptr<AsyncIORequest>>& ioRequestVec) = 0;
+	bool ConvertGuidToString(const GUID& guid, std::string& strGUID);
 
 public:
 	std::vector<std::uint64_t> m_queryLatency;
@@ -71,7 +73,10 @@ protected:
 	std::uint64_t m_blockNum;
 	std::uint64_t m_threadNumber;
 	std::uint64_t m_queryNumberForThread;
+	std::uint64_t m_latencyThreshold;
+	Config::ReadMethod m_readMethod;
 	bool m_memoryLock;
 	bool m_isMemoryLocked;
+	bool m_etwTrace;
 	DWORD m_blockSizeInBytes;
 };

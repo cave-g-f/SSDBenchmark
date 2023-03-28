@@ -1,6 +1,6 @@
-#include "ReadPerformanceTest.h"
-#include "AsyncRead.h"
-#include "IOCPRead.h"
+﻿#include "ReadPerformanceTest.h"
+
+#include <fstream>
 
 ReadPerformanceTest::ReadPerformanceTest()
 {
@@ -11,6 +11,23 @@ ReadPerformanceTest::ReadPerformanceTest()
 	m_fileSize = Config::get().getValUint8(configName::FileSize);
 	m_memoryLock = Config::get().getValBoolean(configName::MemoryLock);
 	m_bufferLenInBytes = (1 << 30);
+	m_latencyCounterDuration = Config::get().getValUint64(configName::LatencyCoutnerDuration);
+	m_qps = Config::get().getValUint64(configName::QPS);
+	m_printRawLatency = Config::get().getValBoolean(configName::PrintRawLatency);
+	m_ioDepthThreshold = Config::get().getValUint64(configName::IODepthThreshold);
+
+	if (m_qps)
+	{
+		m_timePerQuery = 1000 / m_qps;
+		if (m_timePerQuery == 0)
+		{
+			std::cout << "qps per thread too large, cannot set, use default = 0" << std::endl;
+			m_qps = 0;
+		}
+	}
+
+	m_latencyFileHander.reserve(m_threadNumber);
+	m_rawLatencyFileHander.reserve(m_threadNumber);
 }
 
 void ReadPerformanceTest::prepareTestFile()
@@ -96,7 +113,7 @@ void ReadPerformanceTest::SetPrivilege(LPCWSTR privilegeName)
 	}
 }
 
-void ReadPerformanceTest::start(std::uint8_t tId, TestStatisticBag& statisticBag) const
+void ReadPerformanceTest::start(std::uint8_t tId, TestStatisticBag& statisticBag)
 {
 	std::unique_ptr<ReadAlgoBase> readAlgo;
 
@@ -108,21 +125,55 @@ void ReadPerformanceTest::start(std::uint8_t tId, TestStatisticBag& statisticBag
 	case Config::ReadMethod::IOCPRead:
 		readAlgo = std::make_unique<IOCPRead>();
 		break;
+	case Config::ReadMethod::IODepthRead:
+		readAlgo = std::make_unique<IODepthRead>(std::ref(m_ioDepth), m_ioDepthThreshold);
+		break;
+	case Config::ReadMethod::SyncRead:
+		readAlgo = std::make_unique<SyncRead>();
+		break;
 	default:
 		break;
 	}
 
 	std::uint64_t elapsedTime = 0;
+	auto minuteStart = std::chrono::high_resolution_clock::now();
 	while (elapsedTime < m_testTime)
 	{
-		auto startTime = std::chrono::high_resolution_clock::now();
+		auto queryStartTime = std::chrono::high_resolution_clock::now();
 		readAlgo->RunReadAlgo();
-		auto endTime = std::chrono::high_resolution_clock::now();
+		auto queryEndTime = std::chrono::high_resolution_clock::now();
 
-		auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
+		auto queryDuration = std::chrono::duration_cast<std::chrono::microseconds>(queryEndTime - queryStartTime).count();
+
+		auto latencyDuration = std::chrono::duration_cast<std::chrono::microseconds>(queryEndTime - minuteStart).count();
+
+		if (latencyDuration > m_latencyCounterDuration * 1000 * 1000)
+		{
+			setAndDumpLatencyFile(tId, readAlgo.get(), statisticBag);
+			minuteStart = std::chrono::high_resolution_clock::now();
+		}
+
+		statisticBag.requestCnt += 1;
+
+		if (m_qps)
+		{
+			auto durationInMilli = queryDuration / 1000;
+			auto sleepTime = m_timePerQuery - durationInMilli;
+			std::this_thread::sleep_for(std::chrono::milliseconds(sleepTime));
+		}
+
+		auto endTime = std::chrono::high_resolution_clock::now();
+		auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - queryStartTime).count();
 		elapsedTime += duration;
 	}
 
+	statisticBag.readTotalBytes = readAlgo->m_readTotalBytes;
+	
+	readAlgo->Release();
+}
+
+void ReadPerformanceTest::setAndDumpLatencyFile(std::uint8_t tId, ReadAlgoBase* readAlgo, TestStatisticBag& statisticBag)
+{
 	double avgQueryLatency = 0, avgSendLatency = 0, avgWaitLatency = 0;
 	size_t len = readAlgo->m_queryLatency.size();
 
@@ -133,9 +184,22 @@ void ReadPerformanceTest::start(std::uint8_t tId, TestStatisticBag& statisticBag
 		avgWaitLatency += (double)readAlgo->m_waitLatency[i] / len;
 	}
 
+	std::cout << "start dump latency info..." << std::endl;
+
+	if (m_printRawLatency)
+	{
+		for (int i = 0; i < len; i++)
+		{
+			m_rawLatencyFileHander[tId] << readAlgo->m_queryLatency[i] << "\n";
+		}
+
+		m_rawLatencyFileHander[tId] << "---- dump point ----\n";
+	}
+
 	std::sort(readAlgo->m_queryLatency.begin(), readAlgo->m_queryLatency.end());
 	std::sort(readAlgo->m_sendLatency.begin(), readAlgo->m_sendLatency.end());
 	std::sort(readAlgo->m_waitLatency.begin(), readAlgo->m_waitLatency.end());
+
 
 	statisticBag.avgQueryLatency = avgQueryLatency;
 	statisticBag.queryLatency50 = readAlgo->m_queryLatency[len * 0.5];
@@ -143,21 +207,31 @@ void ReadPerformanceTest::start(std::uint8_t tId, TestStatisticBag& statisticBag
 	statisticBag.queryLatency95 = readAlgo->m_queryLatency[len * 0.95];
 	statisticBag.queryLatency99 = readAlgo->m_queryLatency[len * 0.99];
 	statisticBag.queryLatency999 = readAlgo->m_queryLatency[len * 0.999];
+	statisticBag.queryLatencyMax = readAlgo->m_queryLatency[len - 1];
 	statisticBag.avgSendLatency = avgSendLatency;
 	statisticBag.sendLatency50 = readAlgo->m_sendLatency[len * 0.5];
 	statisticBag.sendLatency90 = readAlgo->m_sendLatency[len * 0.9];
 	statisticBag.sendLatency95 = readAlgo->m_sendLatency[len * 0.95];
 	statisticBag.sendLatency99 = readAlgo->m_sendLatency[len * 0.99];
 	statisticBag.sendLatency999 = readAlgo->m_sendLatency[len * 0.999];
+	statisticBag.sendLatencyMax = readAlgo->m_sendLatency[len - 1];
 	statisticBag.avgWaitLatency = avgWaitLatency;
 	statisticBag.waitLatency50 = readAlgo->m_waitLatency[len * 0.5];
 	statisticBag.waitLatency90 = readAlgo->m_waitLatency[len * 0.9];
 	statisticBag.waitLatency95 = readAlgo->m_waitLatency[len * 0.95];
 	statisticBag.waitLatency99 = readAlgo->m_waitLatency[len * 0.99];
 	statisticBag.waitLatency999 = readAlgo->m_waitLatency[len * 0.999];
-	statisticBag.readTotalBytes = readAlgo->m_readTotalBytes;
-	
-	readAlgo->Release();
+	statisticBag.waitLatencyMax = readAlgo->m_waitLatency[len - 1];
+
+	readAlgo->clearLatency();
+
+
+	std::string latencyStr = statisticBag.print();
+	m_latencyFileHander[tId] << latencyStr;
+
+	m_latencyFileHander[tId].flush();
+
+	std::cout << "dump latency info end" << std::endl;
 }
 
 void ReadPerformanceTest::runReadBenchmark()
@@ -169,9 +243,21 @@ void ReadPerformanceTest::runReadBenchmark()
 	std::vector<TestStatisticBag> latencyVecs(m_threadNumber);
 
 	std::uint64_t readBandWidth = 0;
+	std::uint64_t qps = 0;
 
 	for (std::uint8_t i = 0; i < m_threadNumber; i++)
 	{
+		std::string fileName = "latency_" + std::to_string((int)i) + ".txt";
+		auto fHandle = std::ofstream(fileName, std::ios_base::out);
+		m_latencyFileHander.emplace_back(std::move(fHandle));
+
+		if (m_printRawLatency)
+		{
+			std::string rawFileName = "rawlatency_" + std::to_string((int)i) + ".txt";
+			auto rawFHandle = std::ofstream(rawFileName, std::ios_base::out);
+			m_rawLatencyFileHander.emplace_back(std::move(rawFHandle));
+		}
+
 		threadVecs.emplace_back(&ReadPerformanceTest::start, this, i, std::ref(latencyVecs[i]));
 	}
 
@@ -183,13 +269,21 @@ void ReadPerformanceTest::runReadBenchmark()
 
 	for (std::uint8_t i = 0; i < m_threadNumber; i++)
 	{
-		std::cout << std::endl << std::endl << std::endl;
-		std::cout << "thread " << (int)i << " latency: "<< std::endl;
-		latencyVecs[i].print();
 		readBandWidth += latencyVecs[i].readTotalBytes;
+		qps += latencyVecs[i].requestCnt;
 	}
 
 	readBandWidth = (readBandWidth >> 20) / (m_testTime / 1000 / 1000);
 
 	std::cout << "RBW(MB/s): " << readBandWidth << std::endl;
+
+	std::cout << "QPS: " << qps / (m_testTime / 1000 / 1000) << std::endl;
+}
+
+ReadPerformanceTest::~ReadPerformanceTest()
+{
+	for (int i = 0; i < m_threadNumber; i++)
+	{
+		m_latencyFileHander[i].close();
+	}
 }
