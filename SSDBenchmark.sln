@@ -5,8 +5,6 @@ VisualStudioVersion = 16.0.32802.399
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SSDBenchmark", "SSDBenchmark\SSDBenchmark.vcxproj", "{1A470412-E9A8-4D60-AF4D-1FC15450D76C}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test", "test\test.vcxproj", "{E1E8BB9D-4CEE-4A9B-9E28-721B81216B60}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
